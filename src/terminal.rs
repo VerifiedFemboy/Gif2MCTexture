@@ -1,8 +1,10 @@
 
-use crossterm::event::{self, KeyCode};
+use std::fmt::format;
+
+use crossterm::event::{read, Event};
 use ratatui::{layout::Layout, widgets::{Block, Borders, Paragraph}, DefaultTerminal};
 
-use crate::app::{App, AppState};
+use crate::app::App;
 
 pub fn run(terminal: &mut DefaultTerminal, app: &mut App) {
     while !app.exit {
@@ -28,7 +30,7 @@ pub fn draw(terminal: &mut DefaultTerminal, app: &mut App) {
             )
             .split(area);
         
-        let paragraph = Paragraph::new(format!("{}", app.input)).block(Block::default().title("Title").borders(Borders::ALL));
+        let paragraph = Paragraph::new(format!("{}", app.input)).block(Block::default().title(format!("{:?}", app.app_state)).borders(Borders::ALL));
         
         frame.render_widget(paragraph, chunks[0]);
 
@@ -36,7 +38,15 @@ pub fn draw(terminal: &mut DefaultTerminal, app: &mut App) {
 }
 
 pub fn handle_input(app: &mut App) {
-    if let event::Event::Key(event) = event::read().unwrap() {
-        app.handle_input(event.code);
+    if let Event::Key(event) = read().unwrap() {
+        match app.app_state {
+            crate::app::AppState::INPUTNAME => {
+                app.handle_input(event.code);
+            },
+            crate::app::AppState::DONE => {
+                // do nothing
+            },
+            _ => {}
+        }
     }
 }
