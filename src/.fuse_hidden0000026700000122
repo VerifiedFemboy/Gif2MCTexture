@@ -1,0 +1,72 @@
+use std::thread::spawn;
+
+use crossterm::event::{read, Event, KeyCode};
+use ratatui::{layout::Layout, widgets::{Block, Borders, Paragraph}, DefaultTerminal};
+
+use crate::{app::App, converter};
+
+pub fn run(terminal: &mut DefaultTerminal, app: &mut App) {
+    while !app.exit {
+        draw(terminal, app);
+        handle_input(app);
+    }
+}
+
+pub fn draw(terminal: &mut DefaultTerminal, app: &mut App) {
+    let _ = terminal.draw(|frame| {
+        let area = frame.area();
+
+        let chunks = Layout::default()
+            .direction(ratatui::layout::Direction::Vertical)
+            .margin(1)
+            .constraints(
+                [
+                    ratatui::layout::Constraint::Length(3),
+                    ratatui::layout::Constraint::Min(0),
+                ]
+                .as_ref(),
+            )
+            .split(area);
+
+        let paragraph = Paragraph::new(format!("{}", app.input))
+            .block(Block::default().title("Target name (without .gif)").borders(Borders::ALL));
+        frame.render_widget(paragraph, chunks[0]);
+
+        // Wyświetlanie logów konwersji
+        let logs = Paragraph::new(app.logs.join("\n"))
+            .block(Block::default().title("Logs").borders(Borders::ALL));
+        frame.render_widget(logs, chunks[1]);
+    });
+}
+
+pub fn handle_input(app: &mut App) {
+    if let Event::Key(event) = read().unwrap() {
+        let code = event.code;
+        match app.app_state {
+            crate::app::AppState::INPUTNAME => {
+                match code {
+                    KeyCode::Char(c) => {
+                        app.input.push(c);
+                    }
+                    KeyCode::Backspace => {
+                        app.input.pop();
+                    }
+                    KeyCode::Enter => {
+                        let gif_name = app.input.clone();
+                        spawn(move || {
+                            
+                            if let Err(e) = converter::convert(&gif_name, ) {
+                                eprintln!("Error: {}", e);
+                            }
+                        });
+                    }
+                    _ => {}
+                }
+            },
+            crate::app::AppState::DONE => {
+
+            },
+            _ => {}
+        }
+    }
+}
